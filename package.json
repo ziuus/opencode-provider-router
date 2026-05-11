@@ -1,0 +1,48 @@
+{
+  "name": "opencode-provider-router",
+  "version": "1.0.0",
+  "description": "OpenCode plugin for cost-aware AI provider routing. Automatically picks the best model based on task type, complexity, and provider availability with fallback chains.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "license": "MIT",
+  "author": "ziuus",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ziuus/opencode-provider-router.git"
+  },
+  "keywords": [
+    "opencode",
+    "provider",
+    "router",
+    "routing",
+    "model",
+    "cost-aware",
+    "fallback",
+    "ai",
+    "plugin"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "oc-plugin": [
+    "server"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
+  }
+}
