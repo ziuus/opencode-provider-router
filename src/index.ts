@@ -11,7 +11,7 @@ async function runProviderStatus(force: boolean = false): Promise<string> {
   const flag = force ? "--json" : "--json";
   try {
     const { stdout } = await execAsync(`${PROVIDER_STATUS_SCRIPT} ${flag}`, {
-      timeout: 15_000,
+      timeout: 30_000,
     });
     return stdout;
   } catch (err: any) {
@@ -38,9 +38,40 @@ const plugin = async (_input: PluginInput): Promise<Hooks> => ({
           return JSON.stringify({ error: "Failed to parse provider status" });
         }
 
-        const isAvailable = (name: string): boolean => {
-          const p = status[name];
-          if (!p || typeof p !== "object") return true; // assume available
+        // Map model IDs to their provider key in the status dict
+        const PROVIDER_MODEL_MAP: Record<string, string> = {
+          "github-copilot/gpt-5.3-codex": "github-copilot",
+          "openrouter/anthropic/claude-opus-4.6": "openrouter",
+          "google/gemini-3.1-pro-preview": "google",
+          "google/gemini-3-pro-preview": "google",
+        };
+
+        // Agent -> default provider mapping (when model is null)
+        const AGENT_DEFAULT_PROVIDER: Record<string, string> = {
+          "coding": "ollama",
+          "research": "ollama",
+          "general": "ollama",
+        };
+
+        // Extract provider key from a model ID (e.g. "nvidia/llama-3.1" → "nvidia")
+        const providerKeyFromModel = (modelId: string): string => {
+          // Check explicit map first
+          const mapped = PROVIDER_MODEL_MAP[modelId];
+          if (mapped) return mapped;
+          // Fallback: extract prefix before first "/"
+          const slashIdx = modelId.indexOf("/");
+          if (slashIdx > 0) return modelId.substring(0, slashIdx);
+          return modelId;
+        };
+
+        const isAvailable = (name: string | null): boolean => {
+          if (name === null) return false;
+          
+          // Extract the provider key (handles model IDs like "google/gemini-..." → "google")
+          const providerKey = name.includes("/") ? providerKeyFromModel(name) : name;
+          
+          const p = status[providerKey];
+          if (!p || typeof p !== "object") return true; // unknown provider → assume available
           return p.available !== false;
         };
 
@@ -112,7 +143,14 @@ const plugin = async (_input: PluginInput): Promise<Hooks> => ({
 
         for (const entry of routes) {
           tried.push(entry);
-          if (isAvailable(entry.model ?? entry.agent)) {
+          
+          let providerToCheck: string | null = entry.model;
+          if (providerToCheck === null) {
+            // When model is null, use the agent's default provider
+            providerToCheck = AGENT_DEFAULT_PROVIDER[entry.agent] ?? null;
+          }
+          
+          if (isAvailable(providerToCheck)) {
             chosen = entry;
             break;
           }
