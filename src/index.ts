@@ -88,7 +88,7 @@ const plugin = async (_input: PluginInput): Promise<Hooks> => ({
         const table: Record<string, Record<string, RouteEntry[]>> = {
           coding: {
             simple: [
-              { agent: "coding", model: "google/gemini-3.1-pro-preview", display: "Antigravity Gemini 3.1 Pro (free)" },
+              { agent: "coding", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
               { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
               { agent: "coding", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
               { agent: "coding", model: null, display: "Ollama (last resort)" },
@@ -96,31 +96,31 @@ const plugin = async (_input: PluginInput): Promise<Hooks> => ({
             medium: [
               { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
               { agent: "coding", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
-              { agent: "coding", model: "google/gemini-3.1-pro-preview", display: "Antigravity Gemini 3.1 Pro (free)" },
+              { agent: "coding", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
               { agent: "coding", model: null, display: "Ollama (last resort)" },
             ],
             complex: [
               { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
               { agent: "coding", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
-              { agent: "coding", model: "google/gemini-3.1-pro-preview", display: "Antigravity Gemini 3.1 Pro (free)" },
+              { agent: "coding", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
               { agent: "coding", model: null, display: "Ollama (last resort)" },
             ],
           },
           vision: {
             any: [
-              { agent: "image-analysis", model: "google/gemini-3.1-pro-preview", display: "Antigravity Gemini 3.1 Pro (free)" },
+              { agent: "image-analysis", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
               { agent: "browser", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
               { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
             ],
           },
           research: {
             simple: [
-              { agent: "research", model: "google/gemini-3-pro-preview", display: "Antigravity Gemini 3 Pro (free)" },
+              { agent: "research", model: "google/gemini-3-pro-preview", display: "Google AI Studio Gemini 3 Pro (free)" },
               { agent: "research", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
               { agent: "research", model: null, display: "Ollama (last resort)" },
             ],
             complex: [
-              { agent: "research", model: "google/gemini-3-pro-preview", display: "Antigravity Gemini 3 Pro (free)" },
+              { agent: "research", model: "google/gemini-3-pro-preview", display: "Google AI Studio Gemini 3 Pro (free)" },
               { agent: "browser", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
               { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
             ],
@@ -128,12 +128,12 @@ const plugin = async (_input: PluginInput): Promise<Hooks> => ({
           browser: {
             any: [
               { agent: "browser", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
-              { agent: "browser", model: "google/gemini-3.1-pro-preview", display: "Antigravity Gemini 3.1 Pro (free)" },
+              { agent: "browser", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
             ],
           },
           chat: {
             simple: [
-              { agent: "general", model: "google/gemini-3.1-pro-preview", display: "Antigravity Gemini 3.1 Pro (free)" },
+              { agent: "general", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
               { agent: "general", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
               { agent: "general", model: null, display: "Ollama (last resort)" },
             ],
