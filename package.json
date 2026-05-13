@@ -1,6 +1,6 @@
 {
   "name": "opencode-provider-router",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "OpenCode plugin for cost-aware AI provider routing. Automatically picks the best model based on task type, complexity, and provider availability with fallback chains.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

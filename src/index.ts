@@ -88,19 +88,22 @@ const plugin = async (_input: PluginInput): Promise<Hooks> => ({
         const table: Record<string, Record<string, RouteEntry[]>> = {
           coding: {
             simple: [
-              { agent: "coding", model: null, display: "Ollama Kimi-K2.5 (local, cheap)" },
               { agent: "coding", model: "google/gemini-3.1-pro-preview", display: "Antigravity Gemini 3.1 Pro (free)" },
-              { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex (94% quota)" },
+              { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
+              { agent: "coding", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
+              { agent: "coding", model: null, display: "Ollama (last resort)" },
             ],
             medium: [
-              { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex (94% quota)" },
+              { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
               { agent: "coding", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
               { agent: "coding", model: "google/gemini-3.1-pro-preview", display: "Antigravity Gemini 3.1 Pro (free)" },
+              { agent: "coding", model: null, display: "Ollama (last resort)" },
             ],
             complex: [
               { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
               { agent: "coding", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
               { agent: "coding", model: "google/gemini-3.1-pro-preview", display: "Antigravity Gemini 3.1 Pro (free)" },
+              { agent: "coding", model: null, display: "Ollama (last resort)" },
             ],
           },
           vision: {
@@ -113,7 +116,8 @@ const plugin = async (_input: PluginInput): Promise<Hooks> => ({
           research: {
             simple: [
               { agent: "research", model: "google/gemini-3-pro-preview", display: "Antigravity Gemini 3 Pro (free)" },
-              { agent: "research", model: null, display: "Ollama Qwen3.5 (local, fast)" },
+              { agent: "research", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
+              { agent: "research", model: null, display: "Ollama (last resort)" },
             ],
             complex: [
               { agent: "research", model: "google/gemini-3-pro-preview", display: "Antigravity Gemini 3 Pro (free)" },
@@ -129,8 +133,9 @@ const plugin = async (_input: PluginInput): Promise<Hooks> => ({
           },
           chat: {
             simple: [
-              { agent: "general", model: null, display: "Ollama Qwen3.5 (local, fast)" },
               { agent: "general", model: "google/gemini-3.1-pro-preview", display: "Antigravity Gemini 3.1 Pro (free)" },
+              { agent: "general", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
+              { agent: "general", model: null, display: "Ollama (last resort)" },
             ],
           },
         };
