@@ -7,7 +7,7 @@ import { join } from "node:path";
 const execAsync = promisify(exec);
 const PROVIDER_STATUS_SCRIPT = join(homedir(), "bin", "provider-status");
 
-async function runProviderStatus(force: boolean = false): Promise<string> {
+export async function runProviderStatus(force: boolean = false): Promise<string> {
   const flag = force ? "--json" : "--json";
   try {
     const { stdout } = await execAsync(`${PROVIDER_STATUS_SCRIPT} ${flag}`, {
@@ -19,17 +19,194 @@ async function runProviderStatus(force: boolean = false): Promise<string> {
   }
 }
 
+export interface RouteEntry {
+  agent: string;
+  model: string | null;
+  display: string;
+}
+
+export interface RouteResult {
+  agent?: string;
+  model?: string | null;
+  display?: string;
+  available: boolean;
+  reason?: string;
+  task_type?: string;
+  complexity?: string;
+  tried: RouteEntry[];
+  error?: string;
+}
+
+// Map model IDs to their provider key in the status dict
+export const PROVIDER_MODEL_MAP: Record<string, string> = {
+  "github-copilot/gpt-5.3-codex": "github-copilot",
+  "openrouter/anthropic/claude-opus-4.6": "openrouter",
+  "google/gemini-3.1-pro-preview": "google",
+  "google/gemini-3-pro-preview": "google",
+  "groq/llama-3.3-70b-versatile": "groq",
+  "groq/deepseek-r1-distill-llama-70b": "groq",
+  "mistral/codestral-latest": "mistral",
+  "mistral/mistral-large-latest": "mistral",
+};
+
+// Agent -> default provider mapping (when model is null)
+export const AGENT_DEFAULT_PROVIDER: Record<string, string> = {
+  coding: "ollama",
+  research: "ollama",
+  general: "ollama",
+  browser: "ollama",
+  "image-analysis": "ollama",
+};
+
+export const providerKeyFromModel = (modelId: string): string => {
+  const mapped = PROVIDER_MODEL_MAP[modelId];
+  if (mapped) return mapped;
+  const slashIdx = modelId.indexOf("/");
+  if (slashIdx > 0) return modelId.substring(0, slashIdx);
+  return modelId;
+};
+
+export const isProviderAvailable = (
+  name: string | null,
+  status: Record<string, any>
+): boolean => {
+  if (name === null) return false;
+
+  const providerKey = name.includes("/") ? providerKeyFromModel(name) : name;
+  const p = status[providerKey];
+  if (!p || typeof p !== "object") return true; // unknown provider → assume available
+  return p.available !== false;
+};
+
+// ── Routing Table with Groq & Mistral Fallbacks ──────────────────────────────────
+export const ROUTING_TABLE: Record<string, Record<string, RouteEntry[]>> = {
+  coding: {
+    simple: [
+      { agent: "coding", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
+      { agent: "coding", model: "groq/llama-3.3-70b-versatile", display: "Groq LLaMA 3.3 70B" },
+      { agent: "coding", model: "mistral/codestral-latest", display: "Mistral Codestral" },
+      { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
+      { agent: "coding", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
+      { agent: "coding", model: null, display: "Ollama (last resort)" },
+    ],
+    medium: [
+      { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
+      { agent: "coding", model: "mistral/codestral-latest", display: "Mistral Codestral" },
+      { agent: "coding", model: "groq/llama-3.3-70b-versatile", display: "Groq LLaMA 3.3 70B" },
+      { agent: "coding", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
+      { agent: "coding", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
+      { agent: "coding", model: null, display: "Ollama (last resort)" },
+    ],
+    complex: [
+      { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
+      { agent: "coding", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
+      { agent: "coding", model: "mistral/mistral-large-latest", display: "Mistral Large" },
+      { agent: "coding", model: "groq/llama-3.3-70b-versatile", display: "Groq LLaMA 3.3 70B" },
+      { agent: "coding", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
+      { agent: "coding", model: null, display: "Ollama (last resort)" },
+    ],
+  },
+  vision: {
+    any: [
+      { agent: "image-analysis", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
+      { agent: "browser", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
+      { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
+      { agent: "image-analysis", model: "mistral/mistral-large-latest", display: "Mistral Large" },
+    ],
+  },
+  research: {
+    simple: [
+      { agent: "research", model: "google/gemini-3-pro-preview", display: "Google AI Studio Gemini 3 Pro (free)" },
+      { agent: "research", model: "groq/llama-3.3-70b-versatile", display: "Groq LLaMA 3.3 70B" },
+      { agent: "research", model: "mistral/mistral-large-latest", display: "Mistral Large" },
+      { agent: "research", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
+      { agent: "research", model: null, display: "Ollama (last resort)" },
+    ],
+    complex: [
+      { agent: "research", model: "google/gemini-3-pro-preview", display: "Google AI Studio Gemini 3 Pro (free)" },
+      { agent: "research", model: "mistral/mistral-large-latest", display: "Mistral Large" },
+      { agent: "research", model: "groq/llama-3.3-70b-versatile", display: "Groq LLaMA 3.3 70B" },
+      { agent: "browser", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
+      { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
+    ],
+  },
+  browser: {
+    any: [
+      { agent: "browser", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
+      { agent: "browser", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
+      { agent: "browser", model: "groq/llama-3.3-70b-versatile", display: "Groq LLaMA 3.3 70B" },
+    ],
+  },
+  chat: {
+    simple: [
+      { agent: "general", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
+      { agent: "general", model: "groq/llama-3.3-70b-versatile", display: "Groq LLaMA 3.3 70B" },
+      { agent: "general", model: "mistral/mistral-large-latest", display: "Mistral Large" },
+      { agent: "general", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
+      { agent: "general", model: null, display: "Ollama (last resort)" },
+    ],
+  },
+};
+
+export function routeTask(
+  taskType: string = "coding",
+  complexity: string = "simple",
+  status: Record<string, any> = {}
+): RouteResult {
+  const taskRoutes = ROUTING_TABLE[taskType] ?? ROUTING_TABLE.coding;
+  const routes =
+    taskRoutes[complexity] ??
+    taskRoutes.simple ??
+    taskRoutes.any ??
+    taskRoutes[Object.keys(taskRoutes)[0]];
+
+  const tried: RouteEntry[] = [];
+  let chosen: RouteEntry | null = null;
+
+  for (const entry of routes) {
+    tried.push(entry);
+
+    let providerToCheck: string | null = entry.model;
+    if (providerToCheck === null) {
+      providerToCheck = AGENT_DEFAULT_PROVIDER[entry.agent] ?? null;
+    }
+
+    if (isProviderAvailable(providerToCheck, status)) {
+      chosen = entry;
+      break;
+    }
+  }
+
+  if (chosen) {
+    return {
+      agent: chosen.agent,
+      model: chosen.model,
+      display: chosen.display,
+      available: true,
+      reason: `Selected: ${chosen.display}`,
+      task_type: taskType,
+      complexity,
+      tried,
+    };
+  }
+
+  return {
+    available: false,
+    error: `No available provider for ${taskType}/${complexity}`,
+    tried,
+  };
+}
+
 const plugin = async (_input: PluginInput): Promise<Hooks> => ({
   tool: {
     route_task: tool({
       description:
-        "Find the best available model/agent for a task type. Uses cost-aware routing with fallback chains. Returns JSON with agent name, model ID, and reasoning.",
+        "Find the best available model/agent for a task type. Uses cost-aware routing with fallback chains (including Groq and Mistral). Returns JSON with agent name, model ID, and reasoning.",
       args: {
         task_type: tool.schema.enum(["coding", "vision", "research", "browser", "chat"]),
         complexity: tool.schema.enum(["simple", "medium", "complex", "any"]).optional().default("simple"),
       },
       execute: async (args) => {
-        // Parse provider status to make routing decisions
         const statusRaw = await runProviderStatus();
         let status: Record<string, any> = {};
         try {
@@ -38,161 +215,17 @@ const plugin = async (_input: PluginInput): Promise<Hooks> => ({
           return JSON.stringify({ error: "Failed to parse provider status" });
         }
 
-        // Map model IDs to their provider key in the status dict
-        const PROVIDER_MODEL_MAP: Record<string, string> = {
-          "github-copilot/gpt-5.3-codex": "github-copilot",
-          "openrouter/anthropic/claude-opus-4.6": "openrouter",
-          "google/gemini-3.1-pro-preview": "google",
-          "google/gemini-3-pro-preview": "google",
-        };
-
-        // Agent -> default provider mapping (when model is null)
-        const AGENT_DEFAULT_PROVIDER: Record<string, string> = {
-          "coding": "ollama",
-          "research": "ollama",
-          "general": "ollama",
-        };
-
-        // Extract provider key from a model ID (e.g. "nvidia/llama-3.1" → "nvidia")
-        const providerKeyFromModel = (modelId: string): string => {
-          // Check explicit map first
-          const mapped = PROVIDER_MODEL_MAP[modelId];
-          if (mapped) return mapped;
-          // Fallback: extract prefix before first "/"
-          const slashIdx = modelId.indexOf("/");
-          if (slashIdx > 0) return modelId.substring(0, slashIdx);
-          return modelId;
-        };
-
-        const isAvailable = (name: string | null): boolean => {
-          if (name === null) return false;
-          
-          // Extract the provider key (handles model IDs like "google/gemini-..." → "google")
-          const providerKey = name.includes("/") ? providerKeyFromModel(name) : name;
-          
-          const p = status[providerKey];
-          if (!p || typeof p !== "object") return true; // unknown provider → assume available
-          return p.available !== false;
-        };
-
         const taskType = args.task_type ?? "coding";
         const complexity = args.complexity ?? "simple";
+        const result = routeTask(taskType, complexity, status);
 
-        // ── Routing Table ──────────────────────────────────────────
-        interface RouteEntry {
-          agent: string;
-          model: string | null;
-          display: string;
-        }
-
-        const table: Record<string, Record<string, RouteEntry[]>> = {
-          coding: {
-            simple: [
-              { agent: "coding", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
-              { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
-              { agent: "coding", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
-              { agent: "coding", model: null, display: "Ollama (last resort)" },
-            ],
-            medium: [
-              { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
-              { agent: "coding", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
-              { agent: "coding", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
-              { agent: "coding", model: null, display: "Ollama (last resort)" },
-            ],
-            complex: [
-              { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
-              { agent: "coding", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
-              { agent: "coding", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
-              { agent: "coding", model: null, display: "Ollama (last resort)" },
-            ],
-          },
-          vision: {
-            any: [
-              { agent: "image-analysis", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
-              { agent: "browser", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
-              { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
-            ],
-          },
-          research: {
-            simple: [
-              { agent: "research", model: "google/gemini-3-pro-preview", display: "Google AI Studio Gemini 3 Pro (free)" },
-              { agent: "research", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
-              { agent: "research", model: null, display: "Ollama (last resort)" },
-            ],
-            complex: [
-              { agent: "research", model: "google/gemini-3-pro-preview", display: "Google AI Studio Gemini 3 Pro (free)" },
-              { agent: "browser", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
-              { agent: "coding", model: "github-copilot/gpt-5.3-codex", display: "Copilot GPT-5.3 Codex" },
-            ],
-          },
-          browser: {
-            any: [
-              { agent: "browser", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
-              { agent: "browser", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
-            ],
-          },
-          chat: {
-            simple: [
-              { agent: "general", model: "google/gemini-3.1-pro-preview", display: "Google AI Studio Gemini 3.1 Pro (free)" },
-              { agent: "general", model: "openrouter/anthropic/claude-opus-4.6", display: "OpenRouter Claude Opus 4.6" },
-              { agent: "general", model: null, display: "Ollama (last resort)" },
-            ],
-          },
-        };
-
-        const taskRoutes = table[taskType] ?? table.coding;
-        const routes = taskRoutes[complexity] ?? taskRoutes.simple ?? taskRoutes.any ?? taskRoutes[Object.keys(taskRoutes)[0]];
-
-        const tried: RouteEntry[] = [];
-        let chosen: RouteEntry | null = null;
-
-        for (const entry of routes) {
-          tried.push(entry);
-          
-          let providerToCheck: string | null = entry.model;
-          if (providerToCheck === null) {
-            // When model is null, use the agent's default provider
-            providerToCheck = AGENT_DEFAULT_PROVIDER[entry.agent] ?? null;
-          }
-          
-          if (isAvailable(providerToCheck)) {
-            chosen = entry;
-            break;
-          }
-        }
-
-        if (chosen) {
-          return JSON.stringify(
-            {
-              agent: chosen.agent,
-              model: chosen.model,
-              display: chosen.display,
-              available: true,
-              reason: `Selected: ${chosen.display}`,
-              task_type: taskType,
-              complexity,
-              tried: tried.map((t) => ({ agent: t.agent, model: t.model, display: t.display })),
-            },
-            null,
-            2
-          );
-        }
-
-        return JSON.stringify(
-          {
-            available: false,
-            error: `No available provider for ${taskType}/${complexity}`,
-            tried: tried.map((t) => ({ agent: t.agent, model: t.model, display: t.display })),
-          },
-          null,
-          2
-        );
+        return JSON.stringify(result, null, 2);
       },
     }),
 
     check_providers: tool({
       description:
-        "Check availability and quota of all AI providers (Copilot, Ollama, OpenRouter, Antigravity, OpenAI). Returns JSON with provider status.",
+        "Check availability and quota of all AI providers (Copilot, Ollama, OpenRouter, Google, Groq, Mistral, OpenAI). Returns JSON with provider status.",
       args: {
         force: tool.schema.boolean().optional().default(false),
       },
@@ -203,7 +236,7 @@ const plugin = async (_input: PluginInput): Promise<Hooks> => ({
 
     get_quota: tool({
       description:
-        "Get quota summary for all providers. Returns Copilot %, OpenAI status, etc.",
+        "Get quota summary for all providers. Returns Copilot %, Groq/Mistral status, OpenAI status, etc.",
       args: {
         force: tool.schema.boolean().optional().default(false),
       },

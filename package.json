@@ -36,6 +36,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
+    "test": "tsc && node --test test/*.test.ts",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

@@ -5,10 +5,10 @@ OpenCode plugin for cost-aware AI provider routing. Automatically picks the best
 ## Features
 
 - **Smart routing** — chooses optimal model by task type (coding, vision, research, browser, chat)
-- **Fallback chains** — tries preferred → fallback1 → fallback2 automatically
-- **Cost-aware** — uses cheap/free models (Ollama, Antigravity) for simple tasks, powerful models (Copilot, OpenRouter) for complex work
+- **Fallback chains** — tries preferred → fallback1 → fallback2 automatically across multiple providers (Google, Groq, Mistral, Copilot, OpenRouter, Ollama)
+- **Cost-aware** — uses cheap/free models (Google AI Studio, Groq, Ollama) for simple tasks, powerful models (Copilot, OpenRouter, Mistral Large) for complex work
 - **Live health checks** — queries provider availability in real-time
-- **Quota monitoring** — checks remaining Copilot credits before routing
+- **Quota monitoring** — checks remaining Copilot and provider quotas before routing
 
 ## Installation
 
@@ -56,11 +56,21 @@ How much Copilot quota do I have left?
 
 | Task Type | Simple | Medium/Complex |
 |-----------|--------|----------------|
-| Coding | Ollama → Antigravity → Copilot | Copilot → OpenRouter → Antigravity |
-| Vision | Antigravity → OpenRouter → Copilot | — |
-| Research | Antigravity → Ollama | Antigravity → OpenRouter → Copilot |
-| Browser | OpenRouter → Antigravity | — |
-| Chat | Ollama → Antigravity | — |
+| Coding | Google → Groq → Mistral → Copilot → OpenRouter → Ollama | Copilot → Mistral → Groq → OpenRouter → Google → Ollama |
+| Vision | Google → OpenRouter → Copilot → Mistral | — |
+| Research | Google → Groq → Mistral → OpenRouter → Ollama | Google → Mistral → Groq → OpenRouter → Copilot |
+| Browser | OpenRouter → Google → Groq | — |
+| Chat | Google → Groq → Mistral → OpenRouter → Ollama | — |
+
+## Supported Providers & Models
+
+- **Google AI Studio**: `gemini-3.1-pro-preview`, `gemini-3-pro-preview`
+- **Groq**: `llama-3.3-70b-versatile`, `deepseek-r1-distill-llama-70b`
+- **Mistral**: `codestral-latest`, `mistral-large-latest`
+- **GitHub Copilot**: `gpt-5.3-codex`
+- **OpenRouter**: `anthropic/claude-opus-4.6`
+- **Ollama**: Local models / local fallback
+
 
 ## Requirements
 
